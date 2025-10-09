@@ -96,7 +96,7 @@ class CompoundVerificationWorker(VerificationWorker):
         elif ident_type == "CHEBI_ID":
             seq = chebi_fetch_smiles(ident)
         else:
-            logger.error(f"Unknown compound ident_type: {ident_type}")
+            logger.warning(f"Unknown compound ident_type: {ident_type}")
             seq = None
 
         if seq is None or not seq:

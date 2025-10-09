@@ -88,7 +88,7 @@ class ProteinNucleicVerificationWorker(VerificationWorker):
         elif ident_type == "ALPHAFOLD_ID":
             seq = alphafold_fetch_sequence(ident)
         else:
-            logger.error(f"Unknown protein ident_type: {ident_type}")
+            logger.warning(f"Unknown protein ident_type: {ident_type}")
             seq = None
 
         if seq is None or not seq:
