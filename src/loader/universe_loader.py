@@ -248,7 +248,7 @@ def _load_pdb(simulation_files: list[str],results_file: ResultsFile, simulation_
 
     universe: Universe = Universe(pdb_files[0],
                                   in_memory=True,
-                                  infer_system=True)
+                                  infer_system=True, guess_bonds=True)
 
     results_file.set_item(LOAD_STRATEGY_PATH, LoadStrategy.PDB.value)
     save_used_files(simulation_directory, [pdb_files[0]])
