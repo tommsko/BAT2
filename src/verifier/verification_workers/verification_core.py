@@ -2,6 +2,7 @@ from enum import Enum
 
 from src.loader.results_file import ResultsFile
 from src.loader.simulation import Simulation
+from src import core_config
 from tqdm import tqdm
 
 class VerificationKind(Enum):
@@ -100,9 +101,17 @@ class Verifier:
 
         results: list[tuple[str, str, float, float | None]] = []
 
+        to_verify: int = core_config.getint("verification", "verify_top_n_results")
+        successfully_verified: int = 0
         for identifier, identifier_type, confidence in tqdm(identifiers, desc=f"Verifying {self.fragment_name} identifiers..."):
             observed_confidence: float | None = self.worker.verify_identification(identifier, identifier_type, self.get_signature())
             results.append((identifier, identifier_type, confidence, observed_confidence if observed_confidence is not None else -1))
+
+            if observed_confidence is not None:
+                successfully_verified += 1
+
+            if successfully_verified > to_verify:
+                break
 
         results.sort(key=lambda x: x[3], reverse=True)
         return [(i, it, sc, oc if oc != -1 else None) for i, it, sc, oc in results]
