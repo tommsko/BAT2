@@ -77,7 +77,7 @@ class Verifier:
                 ident_type = data_ident["hit_type"]
                 idents = data_ident["hits"]
                 for ident, confidence in idents:
-                    results.append((ident, ident_type, confidence))
+                    results.append((ident, ident_type, float(confidence) if isinstance(confidence, str) else confidence)
         return sorted(results, key=lambda x: x[2], reverse=True)
 
     def calculate_identifier_confidence(self) -> list[tuple[str, str, float, float | None]]:
