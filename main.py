@@ -12,6 +12,7 @@ from src.executor.task import Task
 from src.executor.core import ExecutorCore
 
 from src.stats.stats_aggregator import StatsAggregatorManager, parse_stats_types
+from src.utils.sync_databases import sync
 
 parser = argparse.ArgumentParser(
                     prog='BAT v2',
@@ -41,6 +42,8 @@ args = parser.parse_args()
 
 print_motd()
 init_loggers(args.verbose, args.very_verbose)
+
+sync()
 
 if args.run:
     print("[cyan][b]-> Entering run mode[/b][/cyan]")
