@@ -3,7 +3,7 @@ import hashlib
 import requests
 from pathlib import Path
 
-API_BASE = "https://bioid.dyn.cloud.e-infra.cz:8080"
+API_BASE = "https://bioid.dyn.cloud.e-infra.cz:443"
 LOCAL_DIR = "."
 
 
@@ -16,12 +16,15 @@ def local_hash(path, block_size=65536):
 
 
 def ensure_dir(path):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    path = os.path.dirname(path)
+    if not path or path == '.':
+        return
+    os.makedirs(path, exist_ok=True)
 
 
 def sync():
     print("[SYNC] Fetching database list from API...")
-    resp = requests.get(f"{API_BASE}/api/LTS")
+    resp = requests.get(f"{API_BASE}/api/LTS", timeout=30)
     resp.raise_for_status()
     remote_files = resp.json()
 
@@ -41,9 +44,12 @@ def sync():
 
         ensure_dir(local_path)
         r = requests.get(f"{API_BASE}/api/LTS/download/{rel_path.replace('/', '_').replace('.', '|')}", stream=True)
-        r.raise_for_status()
-        with open(local_path, "wb") as f:
-            for chunk in r.iter_content(chunk_size=8192):
-                f.write(chunk)
+        try:
+            r.raise_for_status()
+            with open(local_path, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+        except Exception as exc:
+            print(f"... FAILED: {exc}")
 
     print("[SYNC] Sync complete.")
