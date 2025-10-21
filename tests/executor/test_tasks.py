@@ -7,13 +7,13 @@ from ...src.executor.task import Task, TaskList
 def test_task_success():
     make_directory(TEST_DIR)
 
-    task: Task = Task(executable=write_file, params=["test", TEST_DIR, "foo"], name="test")
-    assert task.name == "test"
+    task: Task = Task(executable=write_file, params=["test_tpr_gro", TEST_DIR, "foo"], name="test_tpr_gro")
+    assert task.name == "test_tpr_gro"
 
     assert task.execute() == "foo"
     assert task.finished_successfully
 
-    assert check_file("test", TEST_DIR, "foo")
+    assert check_file("test_tpr_gro", TEST_DIR, "foo")
     delete_directory(TEST_DIR)
 
 
@@ -22,7 +22,7 @@ def test_task_fail():
     def set_checker() -> None:
         assert False, "expected assert"
 
-    task: Task = Task(executable=set_checker, params=[], name="test")
+    task: Task = Task(executable=set_checker, params=[], name="test_tpr_gro")
 
     assert task.execute() == None
     assert not task.finished_successfully
@@ -81,9 +81,9 @@ def test_tasklist_success_chain_output2():
 
     make_directory(TEST_DIR)
 
-    task_1: Task = Task(executable=write_file, params=['test', TEST_DIR, '0', False], name="test1")
+    task_1: Task = Task(executable=write_file, params=['test_tpr_gro', TEST_DIR, '0', False], name="test1")
 
-    relay_tasks = [Task(executable=write_file_chainer, params=['test', TEST_DIR, None, True], name=f"test{i}")
+    relay_tasks = [Task(executable=write_file_chainer, params=['test_tpr_gro', TEST_DIR, None, True], name=f"test_tpr_gro{i}")
                    for i in range(1, 10)]
 
     tasklist = TaskList(tasks=[task_1] + relay_tasks, chain_output=True, name="list1")
@@ -91,7 +91,7 @@ def test_tasklist_success_chain_output2():
     assert tasklist.execute() == "9"
     assert tasklist.finished_successfully
 
-    assert check_file("test", TEST_DIR, "0123456789")
+    assert check_file("test_tpr_gro", TEST_DIR, "0123456789")
     delete_directory(TEST_DIR)
 
 

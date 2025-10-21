@@ -2,29 +2,40 @@ import os
 import hashlib
 import requests
 from pathlib import Path
-
-API_BASE = "https://bioid.dyn.cloud.e-infra.cz:443"
-LOCAL_DIR = "."
+from .. import core_config
 
 
-def local_hash(path, block_size=65536):
-    hasher = hashlib.md5()
+def local_hash(path: str, block_size: int = 65536) -> str:
+    """
+    Hashes the local file using MD5
+    :returns: string hash
+    """
+    hasher: hashlib._Hash = hashlib.md5()
+
     with open(path, "rb") as f:
         for block in iter(lambda: f.read(block_size), b""):
             hasher.update(block)
     return hasher.hexdigest()
 
 
-def ensure_dir(path):
-    path = os.path.dirname(path)
+def ensure_dir(path: str) -> None:
+    """
+    Creates necessary directory structures to ensure path is writable
+    """
+    path: str = os.path.dirname(path)
     if not path or path == '.':
         return
     os.makedirs(path, exist_ok=True)
 
 
-def sync():
+def sync() -> None:
     print("[SYNC] Fetching database list from API...")
-    resp = requests.get(f"{API_BASE}/api/LTS", timeout=30)
+    if not core_config.getboolean("databases", "sync_enabled"):
+        print("[SYNC] Synchronization is disabled in the configuration")
+        return
+
+    syncer_url_base: str = core_config.get("databases", "sync_url")
+    resp = requests.get(f"{syncer_url_base}/api/LTS", timeout=30)
     resp.raise_for_status()
     remote_files = resp.json()
 
@@ -32,7 +43,7 @@ def sync():
         rel_path = rf["path"]
         remote_hash = rf["hash"]
 
-        local_path = Path(LOCAL_DIR) / rel_path
+        local_path = Path(".") / rel_path
         if not local_path.exists():
             print(f"... Downloading new file: {rel_path}")
         else:
@@ -43,7 +54,7 @@ def sync():
             print(f"... Updating changed file: {rel_path}")
 
         ensure_dir(local_path)
-        r = requests.get(f"{API_BASE}/api/LTS/download/{rel_path.replace('/', '_').replace('.', '|')}", stream=True)
+        r = requests.get(f"{syncer_url_base}/api/LTS/download/{rel_path.replace('/', '_').replace('.', '|')}", stream=True)
         try:
             r.raise_for_status()
             with open(local_path, "wb") as f:

@@ -69,8 +69,8 @@ def tanimoto_similarity(smiles1: str, smiles2: str):
     """
     if not smiles1 or not smiles2:
         return 0.0
-    mol1 = Chem.MolFromSmiles(smiles1)
-    mol2 = Chem.MolFromSmiles(smiles2)
+    mol1: Chem.Mol | None = Chem.MolFromSmiles(smiles1)
+    mol2: Chem.Mol | None = Chem.MolFromSmiles(smiles2)
     if mol1 is None or mol2 is None:
         return 0.0
     fp1 = FingerprintMols.FingerprintMol(mol1)

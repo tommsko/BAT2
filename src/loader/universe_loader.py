@@ -1,13 +1,18 @@
 import logging
 import json
 import os
+from contextlib import contextmanager
+import tempfile
 from enum import Enum
+from rdkit import Chem
+from rdkit.Chem import rdDetermineBonds
 from .results_file import ResultsFile
 from MDAnalysis import Universe # type: ignore
 from ..utils.file_utils import list_files_in_directory, filter_files_by_extension
+from ..constants import MDANALYSIS_GUESSER_VDWRADII
 
-ERROR_STRATEGY_NOT_APPLICABLE = "Too many/non-present topology and coordinate files, cowardly exiting!"
-LOAD_STRATEGY_PATH = "simulation/load_strategy"
+ERROR_STRATEGY_NOT_APPLICABLE: str = "Too many/non-present topology and coordinate files, cowardly exiting!"
+LOAD_STRATEGY_PATH: str = "simulation/load_strategy"
 
 logger = logging.getLogger("base")
 
@@ -30,8 +35,8 @@ class LoadStrategy(Enum):
     TPR     = "TPR"      # TRP-based topology w/o coords
     TOP     = "TOP"      # TOP-based topology w/o coords
     ITP     = "ITP"      # ITP-based topology w/o coords
-    PDB     = "PDB"
-    XTC     = "XTC"
+    XTC     = "XTC"      # XTC-based topology
+    PDB     = "PDB"      # PDB-based topology, with bonds inferrence
 
 
 def load(simulation_directory: str, results_file: ResultsFile) -> Universe:
@@ -53,8 +58,8 @@ def load(simulation_directory: str, results_file: ResultsFile) -> Universe:
     for strategy in LoadStrategy:
         try:
             return _load_using(simulation_directory, results_file, strategy)
-        except Exception:
-            logger.info("... loading failed!")
+        except Exception as exc:
+            logger.info(f"... loading failed! {exc}")
             pass
 
     logger.fatal("No load strategy succeeded. Aborting. (Are all necessary files provided?)")
@@ -231,30 +236,6 @@ def _load_itp(simulation_files: list[str], results_file: ResultsFile, simulation
     return universe
 
 
-def _load_pdb(simulation_files: list[str],results_file: ResultsFile, simulation_directory: str) -> Universe:
-    """
-    Attempts to load simulation into MDAnalysis' universe using PDB topology + coords
-    :param simulation_files: files representing the simulation
-    :param results_file: to save successful load strategy
-    :raises RuntimeError: if strategy fails or is not applicable
-    :return: Universe
-    """
-    logger.info("Loading using PDB...")
-
-    pdb_files: list[str] = filter_files_by_extension(simulation_files, ['pdb'])
-
-    if len(pdb_files) != 1:
-        raise RuntimeError(ERROR_STRATEGY_NOT_APPLICABLE)
-
-    universe: Universe = Universe(pdb_files[0],
-                                  in_memory=True,
-                                  infer_system=True, guess_bonds=True)
-
-    results_file.set_item(LOAD_STRATEGY_PATH, LoadStrategy.PDB.value)
-    save_used_files(simulation_directory, [pdb_files[0]])
-    return universe
-
-
 def _load_xtc(simulation_files: list[str],results_file: ResultsFile, simulation_directory: str) -> Universe:
     """
     Attempts to load simulation into MDAnalysis' universe using PDB topology + coords
@@ -276,4 +257,57 @@ def _load_xtc(simulation_files: list[str],results_file: ResultsFile, simulation_
 
     results_file.set_item(LOAD_STRATEGY_PATH, LoadStrategy.XTC.value)
     save_used_files(simulation_directory, [xtc_files[0]])
+    return universe
+
+
+@contextmanager
+def fix_pdb(pdb_path: str, clear_bonds: bool = True):
+    tmp_names: list[str] = []
+    try:
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
+        tmp_names.append(tmp.name)
+        with open(pdb_path, "r") as src, open(tmp.name, "w") as dst:
+            for line in src:
+                if line.startswith(("ATOM", "HETATM")) and len(line) >= 78:
+                    fixed = line[:76] + line[76:78].upper() + line[78:]
+                    dst.write(fixed)
+                elif clear_bonds and line.startswith("CONECT"):
+                    continue
+                else:
+                    dst.write(line)
+
+        tmp2 = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
+        tmp_names.append(tmp2.name)
+        mol = Chem.MolFromPDBFile(tmp.name, sanitize=False, removeHs=False)
+        rdDetermineBonds.DetermineConnectivity(mol)
+        Chem.MolToPDBFile(mol, tmp2.name)
+
+        yield tmp2.name
+    finally:
+        for path in tmp_names:
+            os.remove(path)
+
+
+def _load_pdb(simulation_files: list[str],results_file: ResultsFile, simulation_directory: str) -> Universe:
+    """
+    Attempts to load simulation into MDAnalysis' universe using PDB topology + coords
+    :param simulation_files: files representing the simulation
+    :param results_file: to save successful load strategy
+    :raises RuntimeError: if strategy fails or is not applicable
+    :return: Universe
+    """
+    logger.info("Loading using PDB...")
+
+    pdb_files: list[str] = filter_files_by_extension(simulation_files, ['pdb'])
+
+    if len(pdb_files) != 1:
+        raise RuntimeError(ERROR_STRATEGY_NOT_APPLICABLE)
+
+    with fix_pdb(pdb_files[0], clear_bonds=True) as new_pdb_path:  # inference inside
+        universe: Universe = Universe(new_pdb_path,
+                                      in_memory=True,
+                                      infer_system=True, guess_bonds=False)
+
+    results_file.set_item(LOAD_STRATEGY_PATH, LoadStrategy.PDB.value)
+    save_used_files(simulation_directory, [pdb_files[0]])
     return universe

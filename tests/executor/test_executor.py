@@ -6,7 +6,7 @@ from ...src.executor.core import ExecutorCore
 from .. import delete_file, check_file, write_file, delete_directory, make_directory, TEST_DIR
 
 
-# test enqueueing + position
+# test_tpr_gro enqueueing + position
 def test_executor_enqueue():
     exe = ExecutorCore(terminate_on_finished=True, block_until_finished=False)
 
@@ -28,7 +28,7 @@ def test_executor_enqueue():
     assert exe.get_task_position(tasklist1.uid) == 2
 
 
-# test simple run one task and finish
+# test_tpr_gro simple run one task and finish
 def test_executor_run_one():
     make_directory(TEST_DIR)
     exe = ExecutorCore(terminate_on_finished=True, block_until_finished=False)
@@ -44,7 +44,7 @@ def test_executor_run_one():
     delete_directory(TEST_DIR)
 
 
-# test simple run one task and finish
+# test_tpr_gro simple run one task and finish
 def test_executor_run():
     make_directory(TEST_DIR)
     exe = ExecutorCore(terminate_on_finished=True, block_until_finished=False)
@@ -127,5 +127,5 @@ def test_executor_fail():
     assert check_file('test_a', TEST_DIR, 'foo')
     assert check_file('test_c', TEST_DIR, 'boo')
 
-# test singleton is working
+# test_tpr_gro singleton is working
 # it is, duh

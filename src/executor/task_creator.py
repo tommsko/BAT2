@@ -73,7 +73,7 @@ def unpack_archives_in_directory(dir_path: str, verbose: bool) -> None:
 
     for zip_file in zip_files:
         if verbose:
-            print(f"[gray]...  Unpacking '{os.path.basename(zip_file)}' in {os.path.basename(dir_path)}")
+            logger.debug(f"Unpacking '{os.path.basename(zip_file)}' in {os.path.basename(dir_path)}")
         with zipfile.ZipFile(zip_file, 'r') as zip_ref:
             zip_ref.extractall(dir_path)
 
@@ -103,12 +103,14 @@ def create_tasks_for_simulations(simulation_folders: list[str],
 
     for folder in simulation_folders:
 
-        task_log_file_path: str = os.path.join(folder, "tasks.log")
-        task_progress_info: dict[str, str] = {"path": task_log_file_path}
+        # task progress (for web interface)
+        task_progress_path: str = os.path.join(folder, "tasks.log")
+        task_progress_info: dict[str, str] = {"path": task_progress_path}
 
         # begin with extracting any zip archives
         unpack_archives_in_directory(folder, verbose)
 
+        # provided files to the analysis
         save_files_in_directory(folder)
 
         tasks: list[Task] = []
