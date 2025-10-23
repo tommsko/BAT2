@@ -200,7 +200,7 @@ class ResultsSummarizer:
             if verified_identifiers:
                 results.set_item(f"summary/segments/{segment}/ident", verified_identifiers[0][0])
                 results.set_item(f"summary/segments/{segment}/ident_type", verified_identifiers[0][1])
-                results.set_item(f"summary/segments/{segment}/confidence", verified_identifiers[0][3])
+                results.set_item(f"summary/segments/{segment}/confidence", verified_identifiers[0][2])
                 results.set_item(f"summary/segments/{segment}/verification", verified_identifiers)
             else:
                 results.set_item(f"summary/segments/{segment}/ident", None)
