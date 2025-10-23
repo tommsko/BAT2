@@ -94,6 +94,7 @@ class Verifier:
         """
 
         identifiers: list[tuple[str, str, float]] = self.get_identifiers()
+        identifiers.sort(key=lambda x: x[2], reverse=True)  # we have a cutoff on verification, try the best ones
 
         if self.verification_kind == VerificationKind.WATER:
             return [("962", "PUBCHEM_CID", 100.0, 100.0)]
@@ -111,7 +112,7 @@ class Verifier:
         successfully_verified: int = 0
         for identifier, identifier_type, confidence in tqdm(identifiers, desc=f"Verifying {self.fragment_name} identifiers..."):
             observed_confidence: float | None = self.worker.verify_identification(identifier, identifier_type, self.get_signature())
-            results.append((identifier, identifier_type, confidence, observed_confidence if observed_confidence is not None else -1))
+            results.append((identifier, identifier_type, confidence, observed_confidence if observed_confidence is not None else 0.0))
 
             if observed_confidence is not None:
                 successfully_verified += 1
@@ -120,5 +121,5 @@ class Verifier:
                 break
 
         results.sort(key=lambda x: x[3], reverse=True)
-        return [(i, it, sc, oc if oc != -1 else None) for i, it, sc, oc in results]
+        return [(i, it, sc, oc if oc != 0.0 else None) for i, it, sc, oc in results]
 

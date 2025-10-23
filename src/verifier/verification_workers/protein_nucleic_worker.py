@@ -74,7 +74,7 @@ def seq_score(seq1: str, seq2: str):
     aligned_positions = sum(1 for a in aln.seqA if a != '-')
     coverage = aligned_positions / len(seq1)
 
-    return identity * coverage
+    return identity * coverage * 100.0
 
 
 class ProteinNucleicVerificationWorker(VerificationWorker):
