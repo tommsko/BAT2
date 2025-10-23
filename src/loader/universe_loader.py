@@ -91,6 +91,8 @@ def _load_using(simulation_directory: str, results_file: ResultsFile, strategy: 
             return _load_itp(simulation_files, results_file, simulation_directory)
         case LoadStrategy.PDB:
             return _load_pdb(simulation_files, results_file, simulation_directory)
+        case LoadStrategy.PDB_NOCONN:
+            return _load_pdb_noconn(simulation_files, results_file, simulation_directory)
         case LoadStrategy.XTC:
             return _load_xtc(simulation_files, results_file, simulation_directory)
         case _:
