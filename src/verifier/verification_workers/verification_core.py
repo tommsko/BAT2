@@ -53,13 +53,19 @@ class Verifier:
         if all_signatures is None:
             return None
 
-        for k, v in all_signatures.items():
-            if self.verification_kind == VerificationKind.PROTEIN and k in ('FASTA_MAP_PROTEIN', 'FASTA_RESNAME_PROTEIN'):
-                return v
-            if self.verification_kind == VerificationKind.NUCLEIC and k in ('FASTA_MAP_NUCLEIC', 'FASTA_RESNAME_NUCLEIC'):
-                return v
-            if self.verification_kind == VerificationKind.COMPOUND and k in ('SMILES', 'SMILES_NOT_SANITIZED'):
-                return v
+        # higher quality signatures first
+        if self.verification_kind == VerificationKind.PROTEIN:
+            if 'FASTA_MAP_PROTEIN' in all_signatures: return all_signatures["FASTA_MAP_PROTEIN"]
+            if 'FASTA_RESNAME_PROTEIN' in all_signatures: return all_signatures["FASTA_RESNAME_PROTEIN"]
+
+        if self.verification_kind == VerificationKind.NUCLEIC:
+            if 'FASTA_MAP_NUCLEIC' in all_signatures: return all_signatures["FASTA_MAP_NUCLEIC"]
+            if 'FASTA_RESNAME_NUCLEIC' in all_signatures: return all_signatures["FASTA_RESNAME_NUCLEIC"]
+
+        if self.verification_kind == VerificationKind.COMPOUND:
+            if 'SMILES' in all_signatures: return all_signatures["SMILES"]
+            if 'SMILES_NOT_SANITIZED' in all_signatures: return all_signatures["SMILES_NOT_SANITIZED"]
+
         return None
 
     def get_identifiers(self) -> list[tuple[str, str, float]]:
@@ -96,7 +102,7 @@ class Verifier:
             return [(self.get_identifiers()[0][0], "ELEMENT", 100.0, 100.0)]
 
         if self.verification_kind == VerificationKind.NONE:
-            identifiers.sort(key=lambda x: x[2], reverse=True)
+            identifiers.sort(key=lambda x: x[2], reverse=True)  # highest reported confidence to lowest
             return [(i, it, sc, None) for i, it, sc in identifiers]
 
         results: list[tuple[str, str, float, float | None]] = []

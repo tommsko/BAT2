@@ -54,7 +54,7 @@ def alphafold_fetch_sequence(alphafold_id: str):
         logger.warning(f"AlphaFold {alphafold_id} fetch FASTA failed: {e}")
         return None
 
-def seq_identity(seq1: str, seq2: str):
+def seq_score(seq1: str, seq2: str):
     """
     Compares two sequences using global alignment
     :param seq1: A
@@ -62,12 +62,20 @@ def seq_identity(seq1: str, seq2: str):
     :return: identity percentage
     """
     if not seq1 or not seq2:
-        return 0.0
-    alignments = pairwise2.align.globalxx(seq1, seq2, one_alignment_only=True)
+        return None
+
+    # match=2, mismatch=-1, gap_open=-0.5, gap_extend=-0.1
+    alignments = pairwise2.align.globalms(seq1, seq2, 2, -1, -0.5, -0.1, one_alignment_only=True)
     aln = alignments[0]
+
     matches = sum(a == b for a, b in zip(aln.seqA, aln.seqB))
-    identity = matches / max(len(seq1), len(seq2))
-    return identity * 100.0
+    identity = matches / len(aln.seqA)
+
+    aligned_positions = sum(1 for a in aln.seqA if a != '-')
+    coverage = aligned_positions / len(seq1)
+
+    return identity * coverage
+
 
 class ProteinNucleicVerificationWorker(VerificationWorker):
     def verify_identification(self, ident: str, ident_type: str, signature: str) -> float | None:
@@ -94,4 +102,4 @@ class ProteinNucleicVerificationWorker(VerificationWorker):
         if seq is None or not seq:
             return None
 
-        return seq_identity(signature, seq)
+        return seq_score(signature, seq)

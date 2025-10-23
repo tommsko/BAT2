@@ -1,8 +1,8 @@
 import logging
 import requests
-from rdkit import Chem
-from rdkit.Chem import DataStructs
-from rdkit.Chem.Fingerprints import FingerprintMols
+from rdkit import Chem, DataStructs
+from rdkit.Chem import AllChem, MACCSkeys, rdMolDescriptors
+from rdkit.DataStructs import TanimotoSimilarity, DiceSimilarity
 from .verification_core import VerificationWorker
 
 logger: logging.Logger = logging.getLogger("verification")
@@ -69,13 +69,41 @@ def tanimoto_similarity(smiles1: str, smiles2: str):
     """
     if not smiles1 or not smiles2:
         return 0.0
-    mol1: Chem.Mol | None = Chem.MolFromSmiles(smiles1)
-    mol2: Chem.Mol | None = Chem.MolFromSmiles(smiles2)
-    if mol1 is None or mol2 is None:
-        return 0.0
-    fp1 = FingerprintMols.FingerprintMol(mol1)
-    fp2 = FingerprintMols.FingerprintMol(mol2)
-    return DataStructs.FingerprintSimilarity(fp1, fp2) * 100.0
+
+    mol1 = Chem.MolFromSmiles(smiles1)
+    mol2 = Chem.MolFromSmiles(smiles2)
+
+    fingerprints: list[str] = ['rdkit', 'atompair', 'topotorsion', 'circular', 'maccs']
+
+    scores = []
+    for fp_type in fingerprints:
+        try:
+            if fp_type == 'rdkit':
+                gen = AllChem.GetRDKitFPGenerator()
+                f1, f2 = gen.GetFingerprint(mol1), gen.GetFingerprint(mol2)
+                scores.append(TanimotoSimilarity(f1, f2))
+            if fp_type == 'atompair':
+                gen = AllChem.GetAtomPairGenerator()
+                f1, f2 = gen.GetSparseCountFingerprint(mol1), gen.GetSparseCountFingerprint(mol2)
+                scores.append(DiceSimilarity(f1, f2))
+            if fp_type == 'topotorsion':
+                gen = AllChem.GetTopologicalTorsionGenerator()
+                f1, f2 = gen.GetSparseCountFingerprint(mol1), gen.GetSparseCountFingerprint(mol2)
+                scores.append(DiceSimilarity(f1, f2))
+            if fp_type == 'circular':
+                gen = AllChem.GetMorganGenerator(radius=2)
+                f1, f2 = gen.GetSparseCountFingerprint(mol1), gen.GetSparseCountFingerprint(mol2)
+                scores.append(DiceSimilarity(f1, f2))
+            if fp_type == 'maccs':
+                f1, f2 = MACCSkeys.GenMACCSKeys(mol1), MACCSkeys.GenMACCSKeys(mol2)
+                scores.append(TanimotoSimilarity(f1, f2))
+        except Exception:
+            pass
+
+    if not scores:
+        return None
+
+    return sum(scores) / len(scores) * 100.0
 
 class CompoundVerificationWorker(VerificationWorker):
     def verify_identification(self, ident: str, ident_type: str, signature: str) -> float | None:

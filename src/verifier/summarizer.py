@@ -66,13 +66,10 @@ class ResultsSummarizer:
         else:
             is_unknown = True
 
-        results.set_item(f"summary/segments/{fragment_name}/macromolecule_type/protein", is_protein)
-        results.set_item(f"summary/segments/{fragment_name}/macromolecule_type/nucleic", is_nucleic)
-        results.set_item(f"summary/segments/{fragment_name}/macromolecule_type/lipid", is_lipid)
-        results.set_item(f"summary/segments/{fragment_name}/macromolecule_type/carbohydrate", is_carbohydrate)
-        results.set_item(f"summary/segments/{fragment_name}/macromolecule_type/atom", is_atom)
-        results.set_item(f"summary/segments/{fragment_name}/macromolecule_type/water", is_water)
-        results.set_item(f"summary/segments/{fragment_name}/macromolecule_type/unknown", is_unknown)
+        for field, value in [('protein', is_protein), ('nucleic', is_nucleic),
+                             ('lipid', is_lipid), ('carbohydrate', is_carbohydrate),
+                             ('atom', is_atom), ('water', is_water), ('unknown', is_unknown)]:
+            results.set_item(f"summary/segments/{fragment_name}/macromolecule_type/{field}", value)
 
         if is_protein: return SegmentMoleculeType.PROTEIN
         if is_nucleic: return SegmentMoleculeType.NUCLEIC
